@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<rss version="2.0">
+  <channel>
+    <title>GB18030 无声明</title>
+    <link>http://example.com/feed</link>
+    <description>字符集由 HTTP 头提供</description>
+    <item>
+      <title>测试条目</title>
+      <link>http://example.com/item/1</link>
+      <description>回退到 Content-Type charset</description>
+    </item>
+  </channel>
+</rss>

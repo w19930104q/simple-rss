@@ -7,6 +7,16 @@ repository begins with a 1.1 import, so earlier releases are not reconstructed.
 
 ## Unreleased
 
+- Transcode non-UTF-8 XML feed bodies to UTF-8 before parsing instead of raising
+  `Encoding::UndefinedConversionError`. The effective encoding is resolved from
+  the XML declaration first, then the HTTP `Content-Type` charset, then the byte
+  order mark (BOM), covering feeds such as ISO-8859-1, UTF-16/32, and GB18030.
+  Unrecognized encodings and declarationless bodies fall back to lenient UTF-8
+  decoding, replacing illegal bytes with `�`; pure binary input raises
+  `SimpleRSS::ParseError` rather than an encoding exception. Valid UTF-8 inputs,
+  JSON Feed validation, `discover`, and `normalized_entries` keep their existing
+  behavior and output encodings.
+
 ## 2.3.0 - 2026-09-14
 
 - Reject non-string discovery inputs with `PolicyError` instead of

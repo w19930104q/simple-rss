@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="GB18030"?>
+<rss version="2.0">
+  <channel>
+    <title>中文新闻</title>
+    <link>http://example.com/feed</link>
+    <description>简体中文订阅</description>
+    <item>
+      <title>头条：你好，世界</title>
+      <link>http://example.com/item/1</link>
+      <description>这是一个 GB18030 编码的订阅源</description>
+    </item>
+  </channel>
+</rss>

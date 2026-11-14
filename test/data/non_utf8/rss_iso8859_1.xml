@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<rss version="2.0">
+  <channel>
+    <title>Café News</title>
+    <link>http://example.com/feed</link>
+    <description>Nouvelles du café</description>
+    <item>
+      <title>Crème brûlée</title>
+      <link>http://example.com/item/1</link>
+      <description>Métro boulot dodo</description>
+    </item>
+  </channel>
+</rss>

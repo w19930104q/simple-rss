@@ -76,6 +76,7 @@ class SimpleRSS # rubocop:disable Metrics/ClassLength
     @entry_contexts = {} #: Hash[Hash[Symbol, untyped], Hash[Symbol, untyped]]
     @entry_contexts.compare_by_identity
 
+    transcode_to_utf8
     parse
   end
 
@@ -321,8 +322,9 @@ class SimpleRSS # rubocop:disable Metrics/ClassLength
 
       raise SimpleRSSError, "HTTP #{response.code}: #{response.message}" unless response.is_a?(Net::HTTPSuccess)
 
-      body = (response.body || "").force_encoding(Encoding::UTF_8)
-      feed = parse(body, options.merge(source_url: final_uri.to_s))
+      body = (response.body || "").b
+      charset = response.type_params["charset"]
+      feed = parse(body, options.merge(source_url: final_uri.to_s, http_charset: charset))
       feed.instance_variable_set(:@etag, response["ETag"])
       feed.instance_variable_set(:@last_modified, response["Last-Modified"])
       feed
@@ -343,6 +345,33 @@ class SimpleRSS # rubocop:disable Metrics/ClassLength
 
   private
 
+  # Transcode non-UTF-8 or binary-tainted feed bodies into UTF-8 before the
+  # regex parser touches them. Bodies that are already valid UTF-8 are left
+  # untouched so existing source-level contracts do not change. JSON feeds
+  # always use UTF-8 and keep their strict validation, so only the XML path
+  # is normalized; pure binary input is rejected with ParseError first.
+  #
+  # @rbs () -> void
+  def transcode_to_utf8
+    handler = SimpleRSS::EncodingHandler
+    # UTF-16/32 documents legitimately contain NUL bytes, so only treat
+    # BOM-less bodies as binary at this stage. Wide documents are recognized
+    # by their BOM and transcoded by the handler instead.
+    if !handler.wide_bom?(@source) && handler.binary?(@source)
+      raise SimpleRSS::ParseError, "Feed body is binary data, not an XML or JSON document"
+    end
+    return if json_like?(@source)
+    return unless handler.needs_normalization?(@source, @options[:http_charset])
+
+    @source = handler.new(@source, @options[:http_charset]).normalize
+  end
+
+  # @rbs (String) -> bool
+  def json_like?(source)
+    prefix = source.b.sub(/\A\xEF\xBB\xBF/n, "").lstrip
+    prefix.match?(/\A(?:[\{\["0-9-]|true\b|false\b|null\b)/n)
+  end
+
   # @rbs () -> Array[XmlElement]
   def normalized_feed_authors
     document = XmlElement.new("", "", @source, { namespaces: {}, base_urls: [] })
@@ -354,8 +383,7 @@ class SimpleRSS # rubocop:disable Metrics/ClassLength
 
   # @rbs () -> void
   def parse
-    prefix = @source.b.sub(/\A\xEF\xBB\xBF/n, "").lstrip
-    return parse_xml unless prefix.match?(/\A(?:[\{\["0-9-]|true\b|false\b|null\b)/n)
+    return parse_xml unless json_like?(@source)
 
     json_feed = JsonFeed.new(@source)
     @json_feed = json_feed
@@ -899,17 +927,21 @@ class SimpleRSS # rubocop:disable Metrics/ClassLength
                content
              end.gsub(/(<!\[CDATA\[|\]\]>)/, "").strip
 
-    result.encode(Encoding::UTF_8)
+    result.encode(Encoding::UTF_8, invalid: :replace, undef: :replace, replace: "�")
   end
 end
 
 require_relative "simple-rss/xml_element"
+require_relative "simple-rss/encoding_handler"
 require_relative "simple-rss/normalized_entry"
 require_relative "simple-rss/json_feed"
 require_relative "simple-rss/json_entry_normalizer"
 require_relative "simple-rss/entry_normalizer"
 
 class SimpleRSSError < StandardError # rubocop:disable Style/OneClassPerFile
+end
+
+class SimpleRSS::ParseError < SimpleRSSError # rubocop:disable Style/OneClassPerFile
 end
 
 require_relative "simple-rss/request_errors"

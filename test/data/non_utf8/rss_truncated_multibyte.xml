@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Emoji ðŸ feed</title>
+    <link>http://example.com/feed</link>
+    <description>truncated multibyte sequence</description>
+    <item>
+      <title>Item ðŸ˜€</title>
+      <link>http://example.com/item/1</link>
+      <description>The emoji byte sequence is cut short</description>
+    </item>
+  </channel>
+</rss>
